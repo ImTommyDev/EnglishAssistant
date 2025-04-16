@@ -3,7 +3,7 @@ from tkinter import ttk, messagebox
 import csv
 import os
 
-FILENAME = "english_assistant\\vocabulario.csv"
+FILENAME = "vocabulario.csv"
 
 # Crear archivo CSV si no existe
 if not os.path.exists(FILENAME):
@@ -32,9 +32,10 @@ def buscar_palabra():
 
     with open(FILENAME, "r", encoding='utf-8') as f:
         reader = csv.DictReader(f)
-        for row in reader:
+        for i, row in enumerate(reader):
+            tag = "evenrow" if i % 2 == 0 else "oddrow"
             if palabra in row["english"].lower():
-                resultados.insert("", "end", values=(row["english"], row["spanish"], row["example_en"], row["example_es"]))
+                resultados.insert("", "end", values=(row["english"], row["spanish"], row["example_en"], row["example_es"]), tags=(tag,))
 
 def mostrar_prompt():
     texto_prompt = (
@@ -55,10 +56,28 @@ def mostrar_prompt():
 
     # Botón para cerrar
     tk.Button(ventana_prompt, text="Cerrar", command=ventana_prompt.destroy).pack(pady=5)
+def cargar_todas_las_palabras():
+    resultados.delete(*resultados.get_children())
+
+    with open(FILENAME, "r", encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        filas_ordenadas = sorted(reader, key=lambda x: x["english"].lower())
+
+        for i, row in enumerate(filas_ordenadas):
+            tag = "evenrow" if i % 2 == 0 else "oddrow"
+            resultados.insert("", "end", values=(row["english"], row["spanish"], row["example_en"], row["example_es"]), tags=(tag,))
 
 # Interfaz
 ventana = tk.Tk()
 ventana.title("Vocabulario Inglés-Español")
+
+fuente_general = ("Segoe UI", 10)
+ventana.option_add("*Font", fuente_general)
+ventana.option_add("*TButton*highlightBackground", "#4a90e2")
+ventana.option_add("*TButton*highlightColor", "#4a90e2")
+ventana.option_add("*TButton*highlightThickness", 0)
+ventana.option_add("*TButton*borderWidth", 0)
+ventana.option_add("*TButton*padding", [5, 5])
 
 # Centrar ventana al iniciar
 w = 800
@@ -73,30 +92,43 @@ ventana.geometry(f"{w}x{h}+{x}+{y}")
 ventana.columnconfigure(0, weight=1)
 ventana.columnconfigure(1, weight=1)
 ventana.rowconfigure(5, weight=1)  # fila de la tabla
+ventana.columnconfigure(0, weight=1)
+ventana.columnconfigure(1, weight=1)
 
-# Entrada por línea con '|'
-tk.Label(ventana, text="Introduce línea (separada por |):").grid(row=0, column=0, sticky="w", padx=5, pady=5)
-entry_linea = tk.Entry(ventana)
-entry_linea.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5)
 
-frame_botones = tk.Frame(ventana)
-frame_botones.grid(row=2, column=0, columnspan=2, sticky="e", padx=5, pady=5)
+# Entrada de línea
+tk.Label(ventana, text="Introduce línea (separada por |):", font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="w", padx=10, pady=(10, 2))
+entry_linea = tk.Entry(ventana, relief="solid", borderwidth=1)
+entry_linea.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 10))
 
-tk.Button(frame_botones, text="Guardar línea", command=guardar_linea).pack(side="right", padx=5)
-tk.Button(frame_botones, text="Prompt", command=mostrar_prompt).pack(side="right", padx=5)
+btn_guardar = tk.Button(ventana, text="Guardar línea", bg="#4a90e2", fg="white", relief="raised", padx=10)
+btn_guardar.grid(row=1, column=1, sticky="w", padx=5)
+
+btn_prompt = tk.Button(ventana, text="Prompt", bg="#4a90e2", fg="white", relief="raised", padx=10)
+btn_prompt.grid(row=1, column=1, sticky="e", padx=10)
+btn_guardar.config(command=guardar_linea)
+btn_prompt.config(command=mostrar_prompt)
 
 # Búsqueda
-tk.Label(ventana, text="Buscar palabra en inglés:").grid(row=3, column=0, sticky="w", padx=5)
-entry_busqueda = tk.Entry(ventana)
-entry_busqueda.grid(row=4, column=0, sticky="ew", padx=5)
-tk.Button(ventana, text="Buscar", command=buscar_palabra).grid(row=4, column=1, sticky="e", padx=5)
+tk.Label(ventana, text="Buscar palabra en inglés:", font=("Segoe UI", 10, "bold")).grid(row=3, column=0, sticky="w", padx=10, pady=(10, 2))
+frame_busqueda = tk.Frame(ventana)
+frame_busqueda.grid(row=4, column=0, columnspan=2, sticky="ew", padx=10, pady=(0, 10))
+frame_busqueda.columnconfigure(0, weight=1)
+
+entry_busqueda = tk.Entry(frame_busqueda, relief="solid", borderwidth=1)
+entry_busqueda.grid(row=0, column=0, sticky="ew")
+
+btn_buscar = tk.Button(frame_busqueda, text="Buscar", bg="#4a90e2", fg="white", relief="raised", padx=10)
+btn_buscar.grid(row=0, column=1, padx=(10, 0))
+btn_buscar.config(command=buscar_palabra)
 
 # Tabla de resultados
 columnas = ("Inglés", "Español", "Ejemplo Inglés", "Ejemplo Español")
 resultados = ttk.Treeview(ventana, columns=columnas, show="headings")
-for col in columnas:
+anchos_porcentuales = [0.25, 0.25, 0.25, 0.25]  # Distribución equitativa
+for col, ancho in zip(columnas, anchos_porcentuales):
     resultados.heading(col, text=col)
-    resultados.column(col, width=150, anchor="w")
+    resultados.column(col, anchor="center", stretch=True, width=int(w * ancho))
 
 resultados.grid(row=5, column=0, columnspan=2, sticky="nsew", padx=5, pady=10)
 
@@ -105,6 +137,25 @@ scrollbar = ttk.Scrollbar(ventana, orient="vertical", command=resultados.yview)
 resultados.configure(yscroll=scrollbar.set)
 scrollbar.grid(row=5, column=2, sticky="ns")
 
+# Estilo visual más moderno
+style = ttk.Style()
+style.theme_use("clam")  # Tema moderno
+
+# Encabezados de tabla
+style.configure("Treeview.Heading", font=("Segoe UI", 10, "bold"), background="#4a90e2", foreground="white")
+
+# Celdas
+style.configure("Treeview", font=("Segoe UI", 10), rowheight=25, background="white", fieldbackground="white")
+
+# Fondo alterno
+style.map("Treeview", background=[('selected', '#add8e6')])
+
+# Alternancia de colores en filas
+resultados.tag_configure("oddrow", background="#f2f2f2")
+resultados.tag_configure("evenrow", background="white")
+
+
+cargar_todas_las_palabras()
 ventana.mainloop()
 # Este código crea una aplicación de escritorio para gestionar vocabulario en inglés y español.
 # Permite agregar palabras con ejemplos y buscar palabras en inglés.
