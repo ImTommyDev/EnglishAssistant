@@ -25,6 +25,8 @@ def guardar_linea():
     
     entry_linea.delete(0, tk.END)
     messagebox.showinfo("Guardado", f"La palabra '{partes[0]}' fue guardada.")
+    
+    cargar_todas_las_palabras() # Recargar la tabla después de guardar
 
 def buscar_palabra():
     palabra = entry_busqueda.get().lower()
