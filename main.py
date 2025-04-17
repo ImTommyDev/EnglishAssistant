@@ -18,7 +18,18 @@ def guardar_linea():
     if len(partes) != 4:
         messagebox.showerror("Error", "Debe haber 4 elementos separados por '|'.")
         return
+
+    palabra_nueva = partes[0].lower()
+
+    # Verificar si la palabra ya existe
+    with open(FILENAME, "r", encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if row["english"].lower() == palabra_nueva:
+                messagebox.showwarning("Duplicado", f"La palabra '{partes[0]}' ya existe en el vocabulario.")
+                return
     
+    # Guardar la nueva línea si no está duplicada
     with open(FILENAME, "a", newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(partes)
@@ -26,8 +37,7 @@ def guardar_linea():
     entry_linea.delete(0, tk.END)
     messagebox.showinfo("Guardado", f"La palabra '{partes[0]}' fue guardada.")
     
-    cargar_todas_las_palabras() # Recargar la tabla después de guardar
-
+    cargar_todas_las_palabras()  # Recargar la tabla después de guardar
 def buscar_palabra():
     palabra = entry_busqueda.get().lower()
     resultados.delete(*resultados.get_children())
